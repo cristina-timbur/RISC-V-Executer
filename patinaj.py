@@ -1,4 +1,5 @@
-#CEA MAI BUNA ECHIPA
+import sys
+
 def read_file(file_name):
     instruction_codes = []
     last_address = int("80000000", 16)
@@ -19,17 +20,8 @@ def read_file(file_name):
                     address = int(address[:-1], 16)
                     last_address = address
 
-                # if (len(instruction_code) // 2) == 2:
-                #     print(line)
-                #     instruction_code = instruction_code[2:] + instruction_code[:2]
-                #     print(instruction_code)
                 for i in range(0, len(instruction_code) // 2):
                     instruction_codes.append(int(instruction_code[i * 2:(i+1)*2], 16))
-                # if instruction_code == "80000000":
-                #     instruction_codes.extend([0] * 8)
-                
-                
-                
     return bytearray(instruction_codes)
 
 def complement_two(nr):
@@ -65,7 +57,6 @@ def ADD(a, b):
         s[i] = (int(a[i]) ^ int(b[i]) ^ carry) 
         carry = ((int(a[i]) & int(b[i])) | ((int(a[i]) | int(b[i])) & carry))
         i -= 1
-    # print(s)
     return "".join([str(x) for x in s])
 
 
@@ -101,10 +92,8 @@ def BEQ(imm1, imm2, value1, value2, program_counter):
     return program_counter + offset - 4
 
 def JAL(imm, rd, program_counter):
-    # bitul de semn
     new_imm = imm[0] + imm[12:] + imm[11] + imm[1:11]
     offset = int(new_imm, 2) * 2
-    # print("offset = ", offset)
     return program_counter + offset
 
 def SRL(nr, reg_shamt):
@@ -128,10 +117,8 @@ def REM(a, b):
     b = (int(b[1:], 2) - (2 ** (len(b) - 1)) * int(b[0]))
     a_new, b_new = a, b
     if a < 0:
-        print("da")
         a_new = -1 * a
     if b < 0:
-        print("nu")
         b_new = -1 * b
 
     divi = a_new // b_new
@@ -169,7 +156,6 @@ def LW(imm, base, byte_array):
     offset = (int(imm[1:], 2) - (2 ** (len(imm) - 1)) * int(imm[0]))
     base = int(base, 2)
     source_address = offset + base - start_address - offset2
-    print(byte_array[source_address:source_address + 4])
     s = []
     for i in range(0, 4):
         b = bin(byte_array[source_address + i])[2:]
@@ -177,6 +163,12 @@ def LW(imm, base, byte_array):
     s = "".join(s)
     return s
     
+def PRINT(register_file, precedent,):
+    if int(register_file[3], 2) > precedent:
+        print(f"Test {int(register_file[3], 2)} : passed")
+    precedent = int(register_file[3], 2)
+    return precedent
+
 
 
 def instruction_fetch(byte_array, program_counter):
@@ -268,116 +260,129 @@ def instruction_decode(instruction_code):
 
 def write_back(register_file, reg, value):
     register_file[reg] = value
-
-        
-def execute(register_file, instr, program_counter, byte_array):
+  
+def execute(register_file, instr, program_counter, byte_array, precedent, ok):
     if instr[0] == "ecall":
-        return "exit", program_counter # s-ar putea sa trebuiasca sa facem ceva in functie de valorile din registri
+        return "exit", program_counter, precedent, ok
     if instr[0] == "unimp":
-        return "exit", program_counter
+        return "exit", program_counter, precedent, ok
     if instr[0] == "addi":
         imm, rs1, rd = instr[1:]
-        # exception when destination register is zero
         if rd == 0:
-            rs1, rd = rd, rs1
-        # print(sign_extend(register_file[rs1]), sign_extend(imm))
+            ok = 1
+            print(f"Test {int(register_file[3], 2) + 1} : ExceptionError -> zero register can not be destination")
+            return None, program_counter, precedent, ok
         register_file[rd] = ADD(sign_extend(register_file[rs1]), sign_extend(imm))
-        return None, program_counter
+        if ok == 0:
+            precedent = PRINT(register_file, precedent)
+        return None, program_counter, precedent, ok
     if instr[0] == "ori":
         imm, rs1, rd = instr[1:]
         register_file[rd] = OR(sign_extend(register_file[rs1]), sign_extend(imm))
-        return None, program_counter
+        if ok == 0:
+            precedent = PRINT(register_file, precedent)
+        return None, program_counter, precedent, ok
     if instr[0] == "slli":
         shamt, rs1, rd = instr[1:]
         register_file[rd] = SLL(sign_extend(register_file[rs1]), shamt)
-        return None, program_counter
+        if ok == 0:
+            precedent = PRINT(register_file, precedent)
+        return None, program_counter, precedent, ok
     if instr[0] == "lui":
         imm, rd = instr[1:]
         register_file[rd] = LUI(imm)
-        return None, program_counter
+        if ok == 0:
+            precedent = PRINT(register_file, precedent)
+        return None, program_counter, precedent, ok
     if instr[0] == "bne":
         imm1, imm2, rs1, rs2 = instr[1:]
         program_counter = BNE(imm1, imm2, register_file[rs1], register_file[rs2], program_counter)
-        return None, program_counter
+        if ok == 0:
+            precedent = PRINT(register_file, precedent)
+        return None, program_counter, precedent, ok
     if instr[0] == "beq":
         imm1, imm2, rs1, rs2 = instr[1:]
         program_counter = BEQ(imm1, imm2, register_file[rs1], register_file[rs2], program_counter)
-        return None, program_counter
+        if ok == 0:
+            precedent = PRINT(register_file, precedent)
+        return None, program_counter, precedent, ok
     if instr[0] == "jal":
-        # print(instr)
         imm, rd = tuple(instr[1:])
         program_counter = JAL(imm, rd, program_counter)
-        return None, program_counter
+        if ok == 0:
+            precedent = PRINT(register_file, precedent)
+        return None, program_counter, precedent, ok
     if instr[0] == "srl":
         rs2, rs1, rd = instr[1:]
         if rd == 0:
-            print("ExceptionError: zero register can not be destination")
-            return None, program_counter
-        # TREBUIE SA TRATAM EXCEPTIA SRL ZERO
+            ok = 1
+            print(f"Test {int(register_file[3], 2) + 1} : ExceptionError -> zero register can not be destination")
+            return None, program_counter, precedent, ok
         register_file[rd] = SRL(sign_extend(register_file[rs1]), sign_extend(register_file[rs2]))
-        return None, program_counter
+        if ok == 0:
+            precedent = PRINT(register_file, precedent)
+        return None, program_counter, precedent, ok
     if instr[0] == "nop":
-        return None, program_counter
+        return None, program_counter, precedent, ok
     if instr[0] == "xor":
         rs2, rs1, rd = instr[1:]
         if rd == 0:
-            print("ExceptionError: zero register can not be destination")
-            return None, program_counter
+            ok = 1
+            print(f"Test {int(register_file[3], 2) + 1} : ExceptionError -> zero register can not be destination")
+            return None, program_counter, precedent, ok
         register_file[rd] = XOR(sign_extend(register_file[rs1]), sign_extend(register_file[rs2]))
-        return None, program_counter
+        if ok == 0:
+            precedent = PRINT(register_file, precedent)
+        return None, program_counter, precedent, ok
     if instr[0] == "rem":
         rs2, rs1, rd = instr[1:]
         if sign_extend(register_file[rs2]) == ("0" * 32):
-            print("ZeroDivisionError: invata matematica, omule!!!")
-            return None, program_counter
+            ok = 1
+            print(f"Test {int(register_file[3], 2) + 1} : ZeroDivisionError -> can not divide by zero")
+            return None, program_counter, precedent, ok
         register_file[rd] = REM(sign_extend(register_file[rs1]), sign_extend(register_file[rs2]))
-        return None, program_counter
+        if ok == 0:
+            precedent = PRINT(register_file, precedent)
+        return None, program_counter, precedent, ok
     if instr[0] == "auipc":
         imm, rd = instr[1:]
         register_file[rd], program_counter = AUIPC(imm, program_counter)
-        return None, program_counter
+        if ok == 0:
+            precedent = PRINT(register_file, precedent)
+        return None, program_counter, precedent, ok
     if instr[0] == "sw":
         imm1, imm2, rs1, rs2 = instr[1:]
         imm = imm2 + imm1
         SW(imm, register_file[rs1], sign_extend(register_file[rs2]), byte_array)
-        return None, program_counter
+        if ok == 0:
+            precedent = PRINT(register_file, precedent)
+        return None, program_counter, precedent, ok
     if instr[0] == "lw":
         imm, rs1, rd = instr[1:]
         register_file[rd] = LW(imm, register_file[rs1], byte_array)
-        return None, program_counter
+        if ok == 0:
+            precedent = PRINT(register_file, precedent)
+        return None, program_counter, precedent, ok
 
+    
     
 
 def main():
+    precedent = 0
+    ok = 0
     byte_array = read_file("/home/maria/pro/rv32um-v-rem.mc")
-    # print(byte_array)
-    # print(len(byte_array))
     program_counter = 0
     register_file = ["0" * 32] * 32
 
     while True:
         program_counter, instruction_code = instruction_fetch(byte_array, program_counter)
-        print(instruction_code, program_counter)
         instruction = instruction_decode(instruction_code)
-        print(instruction)
-        message, program_counter = execute(register_file, instruction, program_counter, byte_array)
-        print(*[int(x, 2) for x in register_file])
+        message, program_counter, precedent, ok = execute(register_file, instruction, program_counter, byte_array, precedent, ok)
         if message == "exit":
             break
-    print(int(register_file[3], 2))
 
 
 if __name__ == "__main__":
     main()
 
-# Probleme deschise si teme de dezbatut: 
-# 1. ecall si unimp
-# 2. registrul zero pe post de destinatie
-# 3. continuam cautarile
-# 20.12.2021:
-# addi
-# srl
-# xor
-# beq
-# to be continued
-# va asteptam si maine!!
+#CEA MAI BUNA ECHIPA!
