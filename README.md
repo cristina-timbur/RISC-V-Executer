@@ -47,12 +47,11 @@ When encountered, an error message is displayed on the screen and program_counte
 
 
 
-
 ## Copyright © 2021
 
-@vl4dio4n &nbsp;@cristina-timbur 
+<p><a href="https://github.com/vl4dio4n">@vl4dio4n</a><a> &nbsp;</a><a href="https://github.com/cristina-timbur">@cristina-timbur</a></p>
 
 ***
-*<p align="center"><a>FMI UniBuc 2021</a></p>* 
+*<p align="center"><a>FMI UniBuc 2021</a></p>*
 
 <p align="right">(<a href="#top">Back to Top</a>)</p>
