@@ -20,9 +20,9 @@ python riscv-executer.py file_name
 
 ## Solution
 
-Loaded the source code into a byte array. A memory address was associated to every byte, imitating
-the real memory. Fetched 4 bytes which form the current instruction from memory location indicated by program_counter (IF part).
-Executed the instruction based on the all the possible formats:   
+The source code is loaded into a byte array. A memory address is associated to every byte, imitating
+the real memory. 4 bytes forming the current instruction are fetched from the memory location indicated by program_counter (IF part).
+Then, the instruction is executed based on the all the possible formats:   
 
 - R-Type : slli, srl, xor, rem  
 - S-Type : sw  
