@@ -370,7 +370,7 @@ def execute(register_file, instr, program_counter, byte_array, precedent, ok):
 def main():
     precedent = 0
     ok = 0
-    byte_array = read_file("/home/maria/pro/rv32um-v-rem.mc")
+    byte_array = read_file("teste//" + sys.argv[1])
     program_counter = 0
     register_file = ["0" * 32] * 32
 
